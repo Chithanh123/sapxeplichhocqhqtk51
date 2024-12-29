@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sắp xếp học phần</title>
+    <style>
+        body {
+            font-family: Be Vietnam Pro, sans-serif;
+            margin: 20px;
+            max-width: 10000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .timetable {
+            display: grid;
+            grid-template-columns: 80px repeat(6, 1fr);
+            gap: 2px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .cell {
+            border: 1px solid #ccc;
+            padding: 5px;
+            min-height: 100px;
+            font-size: 14px;
+            background: #fff;
+        }
+        .header {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+            min-height: auto;
+            position: sticky;
+            top: 0;
+        }
+        .class-slot {
+            background-color: #e6f3ff;
+            margin: 6px;
+            padding: 3px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            border: 1px solid #ccc;
+        }
+        .class-slot:hover {
+            background-color: #b3d9ff;
+        }
+        .class-slot.selected {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .class-slot.disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+            color: #666;
+        }
+        #selectedClasses {
+            margin-top: 20px;
+        }
+        .warning {
+            color: red;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #ffe6e6;
+            border-radius: 4px;
+        }
+        .class-slot.hidden {
+            display: none;
+        }
+        .time-group {
+            margin-bottom: 15px;
+            border-left: 3px solid #4CAF50;
+            padding-left: 10px;
+        }
+        .time-header {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .subject-item {
+            margin-left: 20px;
+            margin-bottom: 3px;
+        }
+        #hideUnselectedBtn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            display: none;
+        }
+        #hideUnselectedBtn:hover {
+            background-color: #45a049;
+        }
+        .show-all-btn {
+            background-color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <h2>Lên kế hoạch sắp xếp học phần cho QHQT51</h2>
+    <p>Hướng dẫn và lưu ý:</p>
+    <ul>
+        <li>Click vào lớp học để chọn, phần mềm sẽ tự động kiểm tra điều kiện để chọn</li>
+        <li>Đây không phải phần mềm chính thức, hãy nhớ đăng ký theo lịch</li>
+        <li>Thông tin ở trang này có thể có sai sót, hãy kiểm tra kĩ</li>
+        <li>Trang không có chức năng lưu, hãy tự ghi lại kế hoạch của mình</li>
+        <li>Các lớp Thứ 2 Thứ 3 bắt đầu từ tuần 10/02; các lớp còn lại bắt đầu từ ngày 5/02</li>
+    </ul>
+        <div id="selectedClasses">
+        <h3>Các lớp đã chọn:</h3>
+        <div id="organizedList"></div>
+    </div>
+    <div id="warnings"></div>
+    <button id="hideUnselectedBtn">Ẩn các lớp chưa chọn</button>
+    <div class="timetable" id="timetable">
+        <div class="cell header">Ca</div>
+        <div class="cell header">Thứ 2</div>
+        <div class="cell header">Thứ 3</div>
+        <div class="cell header">Thứ 4</div>
+        <div class="cell header">Thứ 5</div>
+        <div class="cell header">Thứ 6</div>
+        <div class="cell header">Thứ 7</div>
+    </div>
+
+
+    <script>
+        // Define the class data directly
+        const classData = [
+            // CNXHKH
+            {
+                maHocPhan: 'FC.003.02',
+                tenHocPhan: 'Chủ nghĩa xã hội khoa học',
+                lopHocPhan: 'CNXHKH-QHQT51',
+                soThuTu: '1',
+                thu: 6,
+                ca: 1,
+                phongHoc: 'A502',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.003.02',
+                tenHocPhan: 'Chủ nghĩa xã hội khoa học',
+                lopHocPhan: 'CNXHKH-QHQT51',
+                soThuTu: '2',
+                thu: 6,
+                ca: 2,
+                phongHoc: 'A502',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.003.02',
+                tenHocPhan: 'Chủ nghĩa xã hội khoa học',
+                lopHocPhan: 'CNXHKH-QHQT51',
+                soThuTu: '3',
+                thu: 3,
+                ca: 1,
+                phongHoc: 'A504',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.003.02',
+                tenHocPhan: 'Chủ nghĩa xã hội khoa học',
+                lopHocPhan: 'CNXHKH-QHQT51',
+                soThuTu: '4',
+                thu: 3,
+                ca: 2,
+                phongHoc: 'A504',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.003.02',
+                tenHocPhan: 'Chủ nghĩa xã hội khoa học',
+                lopHocPhan: 'CNXHKH-QHQT51',
+                soThuTu: '5',
+                thu: 4,
+                ca: 2,
+                phongHoc: 'D110',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.010.02',
+                tenHocPhan: 'Chính trị học đại cương',
+                lopHocPhan: 'CTHĐC-QHQT51',
+                soThuTu: '1',
+                thu: 6,
+                ca: 1,
+                phongHoc: 'A602',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.010.02',
+                tenHocPhan: 'Chính trị học đại cương',
+                lopHocPhan: 'CTHĐC-QHQT51',
+                soThuTu: '2',
+                thu: 6,
+                ca: 2,
+                phongHoc: 'A602',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.010.02',
+                tenHocPhan: 'Chính trị học đại cương',
+                lopHocPhan: 'CTHĐC-QHQT51',
+                soThuTu: '3',
+                thu: 3,
+                ca: 1,
+                phongHoc: 'A602',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.010.02',
+                tenHocPhan: 'Chính trị học đại cương',
+                lopHocPhan: 'CTHĐC-QHQT51',
+                soThuTu: '4',
+                thu: 3,
+                ca: 2,
+                phongHoc: 'A602',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'FC.010.02',
+                tenHocPhan: 'Chính trị học đại cương',
+                lopHocPhan: 'CTHĐC-QHQT51',
+                soThuTu: '5',
+                thu: 4,
+                ca: 1,
+                phongHoc: 'D110',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'IR.001.02',
+                tenHocPhan: 'Lịch sử ngoại giao Việt Nam',
+                lopHocPhan: 'LSNGVN-QHQT51',
+                soThuTu: '1',
+                thu: 6,
+                ca: 1,
+                phongHoc: 'D101',
+                giangVien: 'Nguyễn Thùy Minh, Hoàng Thị Hạnh Trang'
+            },
+            {
+                maHocPhan: 'IR.001.02',
+                tenHocPhan: 'Lịch sử ngoại giao Việt Nam',
+                lopHocPhan: 'LSNGVN-QHQT51',
+                soThuTu: '2',
+                thu: 6,
+                ca: 2,
+                phongHoc: 'D101',
+                giangVien: 'Nguyễn Thùy Minh, Hoàng Thị Hạnh Trang'
+            },
+            {
+                maHocPhan: 'IR.001.02',
+                tenHocPhan: 'Lịch sử ngoại giao Việt Nam',
+                lopHocPhan: 'LSNGVN-QHQT51',
+                soThuTu: '3',
+                thu: 3,
+                ca: 1,
+                phongHoc: 'A604',
+                giangVien: 'Nguyễn Thùy Minh, Hoàng Thị Hạnh Trang'
+            },
+            {
+                maHocPhan: 'IR.001.02',
+                tenHocPhan: 'Lịch sử ngoại giao Việt Nam',
+                lopHocPhan: 'LSNGVN-QHQT51',
+                soThuTu: '4',
+                thu: 3,
+                ca: 2,
+                phongHoc: 'A604',
+                giangVien: 'Nguyễn Thị Thu Thủy'
+            },
+            {
+                maHocPhan: 'IR.001.02',
+                tenHocPhan: 'Lịch sử ngoại giao Việt Nam',
+                lopHocPhan: 'LSNGVN-QHQT51',
+                soThuTu: '5',
+                thu: 7,
+                ca: 1,
+                phongHoc: 'D101',
+                giangVien: 'Nguyễn Thị Thu Thủy'
+            },
+            {
+                maHocPhan: 'IR.040.03',
+                tenHocPhan: 'Lịch sử quan hệ quốc tế hiện đại 1 (1648-1945)',
+                lopHocPhan: 'LSQHQTHĐI-QHQT51',
+                soThuTu: '1',
+                thu: 6,
+                ca: 1,
+                phongHoc: 'A604',
+                giangVien: 'Hoàng Tùng Lan'
+            },
+            {
+                maHocPhan: 'IR.040.03',
+                tenHocPhan: 'Lịch sử quan hệ quốc tế hiện đại 1 (1648-1945)',
+                lopHocPhan: 'LSQHQTHĐI-QHQT51',
+                soThuTu: '2',
+                thu: 6,
+                ca: 2,
+                phongHoc: 'A604',
+                giangVien: 'Hoàng Tùng Lan'
+            },
+            {
+                maHocPhan: 'IR.040.03',
+                tenHocPhan: 'Lịch sử quan hệ quốc tế hiện đại 1 (1648-1945)',
+                lopHocPhan: 'LSQHQTHĐI-QHQT51',
+                soThuTu: '3',
+                thu: 3,
+                ca: 1,
+                phongHoc: 'A702',
+                giangVien: 'Hoàng Tùng Lan'
+            },
+            {
+                maHocPhan: 'IR.040.03',
+                tenHocPhan: 'Lịch sử quan hệ quốc tế hiện đại 1 (1648-1945)',
+                lopHocPhan: 'LSQHQTHĐI-QHQT51',
+                soThuTu: '4',
+                thu: 3,
+                ca: 2,
+                phongHoc: 'A702',
+                giangVien: 'Nguyễn Thị Hạnh, Phạm Hoàng Sơn'
+            },
+            {
+                maHocPhan: 'IR.040.03',
+                tenHocPhan: 'Lịch sử quan hệ quốc tế hiện đại 1 (1648-1945)',
+                lopHocPhan: 'LSQHQTHĐI-QHQT51',
+                soThuTu: '5',
+                thu: 7,
+                ca: 2,
+                phongHoc: 'D101',
+                giangVien: 'Nguyễn Thị Hạnh, Phạm Hoàng Sơn'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Luật hiến pháp Việt Nam và các nước (Môn bổ trợ)',
+                lopHocPhan: 'LHPVN&CN-ALL',
+                soThuTu: '1',
+                thu: 4,
+                ca: 4,
+                phongHoc: 'A400',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Công pháp quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'CPQT-ALL',
+                soThuTu: '6',
+                thu: 2,
+                ca: 4,
+                phongHoc: 'A404',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Công pháp quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'CPQT-ALL',
+                soThuTu: '7',
+                thu: 3,
+                ca: 3,
+                phongHoc: 'HTB',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Công pháp quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'CPQT-ALL',
+                soThuTu: '8',
+                thu: 7,
+                ca: 2,
+                phongHoc: 'D205',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Công pháp quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'CPQT-ALL',
+                soThuTu: '9',
+                thu: 5,
+                ca: 2,
+                phongHoc: 'D205',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Kinh doanh quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'KDQT-ALL',
+                soThuTu: '4',
+                thu: 7,
+                ca: 3,
+                phongHoc: 'A300',
+                giangVien: 'Nguyễn Tường Lan'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Kinh doanh quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'KDQT-ALL',
+                soThuTu: '5',
+                thu: 7,
+                ca: 4,
+                phongHoc: 'A300',
+                giangVien: 'Nguyễn Tường Lan'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Kinh doanh quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'KDQT-ALL',
+                soThuTu: '6',
+                thu: 4,
+                ca: 2,
+                phongHoc: 'A400',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Quan hệ kinh tế quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'QHKTQT-ALL',
+                soThuTu: '5',
+                thu: 6,
+                ca: 3,
+                phongHoc: 'D101',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Quan hệ kinh tế quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'QHKTQT-ALL',
+                soThuTu: '6',
+                thu: 3,
+                ca: 2,
+                phongHoc: 'HTB',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Quan hệ kinh tế quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'QHKTQT-ALL',
+                soThuTu: '7',
+                thu: 4,
+                ca: 3,
+                phongHoc: 'A400',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Quan hệ kinh tế quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'QHKTQT-ALL',
+                soThuTu: '8',
+                thu: 7,
+                ca: 3,
+                phongHoc: 'A604',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Quan hệ kinh tế quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'QHKTQT-ALL',
+                soThuTu: '9',
+                thu: 2,
+                ca: 3,
+                phongHoc: 'A306',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Đại cương truyền thông quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'ĐCTTQT-ALL',
+                soThuTu: '7',
+                thu: 4,
+                ca: 4,
+                phongHoc: 'HTB',
+                giangVien: 'Hồ Thanh Tùng'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Đại cương truyền thông quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'ĐCTTQT-ALL',
+                soThuTu: '8',
+                thu: 6,
+                ca: 2,
+                phongHoc: 'D110',
+                giangVien: 'Nguyễn Minh Tuấn'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Đại cương truyền thông quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'ĐCTTQT-ALL',
+                soThuTu: '9',
+                thu: 7,
+                ca: 3,
+                phongHoc: 'A702',
+                giangVien: 'Hồ Thanh Tùng'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Đại cương truyền thông quốc tế (Môn bổ trợ)',
+                lopHocPhan: 'ĐCTTQT-ALL',
+                soThuTu: '10',
+                thu: 2,
+                ca: 1,
+                phongHoc: 'A306',
+                giangVien: 'Hồ Thanh Tùng'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Ngoại giao văn hóa (Môn bổ trợ)',
+                lopHocPhan: 'NGVH-ALL',
+                soThuTu: '1',
+                thu: 2,
+                ca: 4,
+                phongHoc: 'D101',
+                giangVien: 'Trần Thị Hương, Lương Thị Thu Hường'
+            },
+            {
+                maHocPhan: 'Bổ trợ',
+                tenHocPhan: 'Ngoại giao văn hóa (Môn bổ trợ)',
+                lopHocPhan: 'NGVH-ALL',
+                soThuTu: '2',
+                thu: 3,
+                ca: 1,
+                phongHoc: 'A400',
+                giangVien: 'Trần Thị Hương, Lương Thị Thu Hường'
+            },
+
+            // Tiếng Anh chuyên ngành II
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '11.1',
+                thu: 2,
+                ca: 1,
+                phongHoc: 'D210',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '11.2',
+                thu: 5,
+                ca: 2,
+                phongHoc: 'D204',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '12.1',
+                thu: 2,
+                ca: 1,
+                phongHoc: 'D211',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '12.2',
+                thu: 5,
+                ca: 2,
+                phongHoc: 'D210',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '13.1',
+                thu: 2,
+                ca: 1,
+                phongHoc: 'D212',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '13.2',
+                thu: 5,
+                ca: 2,
+                phongHoc: 'D211',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '14.1',
+                thu: 2,
+                ca: 1,
+                phongHoc: 'D213',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '14.2',
+                thu: 5,
+                ca: 2,
+                phongHoc: 'D213',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '15.1',
+                thu: 2,
+                ca: 2,
+                phongHoc: 'D202',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '15.2',
+                thu: 5,
+                ca: 1,
+                phongHoc: 'D201',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '16.1',
+                thu: 2,
+                ca: 2,
+                phongHoc: 'D203',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '16.2',
+                thu: 5,
+                ca: 1,
+                phongHoc: 'D202',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '17.1',
+                thu: 2,
+                ca: 2,
+                phongHoc: 'D204',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '17.2',
+                thu: 5,
+                ca: 1,
+                phongHoc: 'D203',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '18.1',
+                thu: 2,
+                ca: 2,
+                phongHoc: 'D210',
+                giangVien: ''
+            },
+            {
+                maHocPhan: 'E50.06.03',
+                tenHocPhan: 'Tiếng Anh chuyên ngành II',
+                lopHocPhan: 'TACNII-QHQT51',
+                soThuTu: '18.2',
+                thu: 5,
+                ca: 1,
+                phongHoc: 'D204',
+                giangVien: ''
+            },
+            // Add more English class pairs...
+        ];
+
+        const selectedClasses = new Map(); // Store selected classes by subject code
+
+        function initializeTimetable() {
+    const timetable = document.getElementById('timetable');
+
+    // Create slots with times
+    const timeSlots = [
+        "7:00 - 9:30",
+        "9:45 - 12:15",
+        "12:45 - 15:15",
+        "15:30 - 18:00"
+    ];
+
+    for (let slot = 0; slot < timeSlots.length; slot++) {
+        const slotLabel = document.createElement('div');
+        slotLabel.className = 'cell header';
+        slotLabel.textContent = `Ca ${slot + 1}: ${timeSlots[slot]}`;
+        timetable.appendChild(slotLabel);
+
+        for (let day = 2; day <= 7; day++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.id = `day${day}-ca${slot + 1}`;
+
+            // Find and add classes for this timeslot
+            const classes = classData.filter(c => c.thu === day && c.ca === slot + 1);
+            classes.forEach(classInfo => {
+                const classElement = createClassElement(classInfo);
+                cell.appendChild(classElement);
+            });
+
+            timetable.appendChild(cell);
+        }
+    }
+}
+
+        function createClassElement(classInfo) {
+            const div = document.createElement('div');
+            div.className = 'class-slot';
+            div.innerHTML = `
+                ${classInfo.tenHocPhan}<br>
+                Lớp: ${classInfo.lopHocPhan}-${classInfo.soThuTu}<br>
+                Phòng: ${classInfo.phongHoc}<br>
+                ${classInfo.giangVien ? 'GV: ' + classInfo.giangVien : ''}
+            `;
+            div.dataset.classInfo = JSON.stringify(classInfo);
+            div.onclick = () => toggleClassSelection(div, classInfo);
+            return div;
+        }
+
+        function toggleClassSelection(element, classInfo) {
+            if (element.classList.contains('disabled')) {
+                return;
+            }
+
+            const isEnglishClass = classInfo.maHocPhan === 'E50.06.03';
+            
+            if (element.classList.contains('selected')) {
+                // Deselect
+                element.classList.remove('selected');
+                if (isEnglishClass) {
+                    const englishClasses = selectedClasses.get('E50.06.03') || [];
+                    selectedClasses.set('E50.06.03', 
+                        englishClasses.filter(c => c.soThuTu !== classInfo.soThuTu));
+                } else {
+                    selectedClasses.delete(classInfo.maHocPhan);
+                }
+            } else {
+                // Select
+                if (isEnglishClass) {
+                    handleEnglishClassSelection(element, classInfo);
+                } else {
+                    handleRegularClassSelection(element, classInfo);
+                }
+            }
+            
+            updateSelectedClassesList();
+            updateConflicts();
+        }
+
+        function handleEnglishClassSelection(element, classInfo) {
+            const englishClasses = selectedClasses.get('E50.06.03') || [];
+            
+            if (englishClasses.length >= 2) {
+                showWarning("Bạn chỉ được chọn 2 lớp Tiếng Anh chuyên ngành II");
+                return;
+            }
+
+            const currentNumber = classInfo.soThuTu.split('.')[0];
+            const isPair1 = classInfo.soThuTu.endsWith('.1');
+            const hasPair1 = englishClasses.some(c => c.soThuTu.endsWith('.1'));
+            const hasPair2 = englishClasses.some(c => c.soThuTu.endsWith('.2'));
+
+            // Check if the selected class matches the numbering of existing selection
+            if (englishClasses.length > 0) {
+                const existingNumber = englishClasses[0].soThuTu.split('.')[0];
+                if (currentNumber !== existingNumber) {
+                    showWarning("Bạn phải chọn cùng một cặp lớp (ví dụ: 11.1 và 11.2)");
+                    return;
+                }
+            }
+
+            if ((isPair1 && hasPair1) || (!isPair1 && hasPair2)) {
+                showWarning("Bạn phải chọn một lớp .1 và một lớp .2 tương ứng");
+                return;
+            }
+
+            element.classList.add('selected');
+            englishClasses.push(classInfo);
+            selectedClasses.set('E50.06.03', englishClasses);
+        }
+
+        function handleRegularClassSelection(element, classInfo) {
+            if (selectedClasses.has(classInfo.maHocPhan)) {
+                showWarning("Bạn chỉ được chọn một lớp cho mỗi học phần/ 1 học phần bổ trợ");
+                return;
+            }
+
+            element.classList.add('selected');
+            selectedClasses.set(classInfo.maHocPhan, [classInfo]);
+        }
+
+        function updateSelectedClassesList() {
+            const organizedList = document.getElementById('organizedList');
+            organizedList.innerHTML = '';
+            
+            // Create a structured object to organize classes by time
+            const timeSlots = {};
+            
+            selectedClasses.forEach((classes) => {
+                classes.forEach(classInfo => {
+                    const timeKey = `Thứ ${classInfo.thu} - Ca ${classInfo.ca}`;
+                    if (!timeSlots[timeKey]) {
+                        timeSlots[timeKey] = [];
+                    }
+                    timeSlots[timeKey].push(classInfo);
+                });
+            });
+
+            // Sort by day and time
+            const sortedTimes = Object.keys(timeSlots).sort((a, b) => {
+                const [dayA, caA] = a.match(/\d+/g).map(Number);
+                const [dayB, caB] = b.match(/\d+/g).map(Number);
+                return dayA !== dayB ? dayA - dayB : caA - caB;
+            });
+
+            // Create the organized list
+            sortedTimes.forEach(timeKey => {
+                const timeGroup = document.createElement('div');
+                timeGroup.className = 'time-group';
+
+                const timeHeader = document.createElement('div');
+                timeHeader.className = 'time-header';
+                timeHeader.textContent = timeKey;
+                timeGroup.appendChild(timeHeader);
+
+                timeSlots[timeKey].forEach(classInfo => {
+                    const subjectItem = document.createElement('div');
+                    subjectItem.className = 'subject-item';
+                    subjectItem.textContent = `${classInfo.tenHocPhan} - Lớp ${classInfo.soThuTu} - Phòng ${classInfo.phongHoc}`;
+                    timeGroup.appendChild(subjectItem);
+                });
+
+                organizedList.appendChild(timeGroup);
+            });
+
+            // Show/hide the hide unselected button
+            const hideUnselectedBtn = document.getElementById('hideUnselectedBtn');
+            const isSelectionComplete = checkIfSelectionComplete();
+            hideUnselectedBtn.style.display = isSelectionComplete ? 'block' : 'none';
+            if (isSelectionComplete) {
+                hideUnselectedBtn.textContent = 'Ẩn các lớp chưa chọn';
+                hideUnselectedBtn.classList.remove('show-all-btn');
+            }
+        }
+
+        function checkIfSelectionComplete() {
+            // Check if all required subjects are selected
+            const requiredSubjects = new Set(classData.map(c => c.maHocPhan));
+            const selectedSubjects = new Set(selectedClasses.keys());
+            
+            // Special check for English classes
+            const englishClasses = selectedClasses.get('E50.06.03') || [];
+            const isEnglishComplete = englishClasses.length === 2 && 
+                englishClasses.some(c => c.soThuTu.endsWith('.1')) && 
+                englishClasses.some(c => c.soThuTu.endsWith('.2'));
+
+            // Remove English from the check if it's complete
+            if (isEnglishComplete) {
+                requiredSubjects.delete('E50.06.03');
+                selectedSubjects.delete('E50.06.03');
+            }
+
+            // Check if all other subjects are selected
+            return [...requiredSubjects].every(subject => 
+                subject === 'E50.06.03' ? isEnglishComplete : selectedSubjects.has(subject)
+            );
+        }
+
+        function toggleUnselectedClasses() {
+            const btn = document.getElementById('hideUnselectedBtn');
+            const isHiding = btn.textContent === 'Ẩn các lớp chưa chọn';
+            
+            document.querySelectorAll('.class-slot').forEach(slot => {
+                if (!slot.classList.contains('selected')) {
+                    if (isHiding) {
+                        slot.classList.add('hidden');
+                    } else {
+                        slot.classList.remove('hidden');
+                    }
+                }
+            });
+
+            // Toggle button text and style
+            if (isHiding) {
+                btn.textContent = 'Hiển thị tất cả lớp';
+                btn.classList.add('show-all-btn');
+            } else {
+                btn.textContent = 'Ẩn các lớp chưa chọn';
+                btn.classList.remove('show-all-btn');
+            }
+        }
+
+        // Add event listener for the hide unselected button
+        document.getElementById('hideUnselectedBtn').addEventListener('click', toggleUnselectedClasses);
+
+        function updateConflicts() {
+            // Reset all disabled states
+            document.querySelectorAll('.class-slot').forEach(slot => {
+                slot.classList.remove('disabled');
+            });
+
+            // Check for time conflicts
+            const selectedTimes = new Set();
+            selectedClasses.forEach((classes) => {
+                classes.forEach(classInfo => {
+                    selectedTimes.add(`${classInfo.thu}-${classInfo.ca}`);
+                });
+            });
+
+            // Disable conflicting slots
+            document.querySelectorAll('.class-slot:not(.selected)').forEach(slot => {
+                const classInfo = JSON.parse(slot.dataset.classInfo);
+                const timeKey = `${classInfo.thu}-${classInfo.ca}`;
+                if (selectedTimes.has(timeKey)) {
+                    slot.classList.add('disabled');
+                }
+            });
+        }
+
+        function showWarning(message) {
+            const warnings = document.getElementById('warnings');
+            const warning = document.createElement('div');
+            warning.className = 'warning';
+            warning.textContent = message;
+            warnings.appendChild(warning);
+            setTimeout(() => warning.remove(), 5000);
+        }
+
+        // Initialize
+        initializeTimetable();
+    </script>
+</body>
+</html>
